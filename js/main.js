@@ -675,4 +675,3 @@ async function launchExperience() {
 $('rules-seconds').textContent = CONFIG.GAME_SECONDS
 $('rules-goal').textContent = Math.min(...PRIZES.map((p) => p.minScore))
 $('start-button').addEventListener('click', launchExperience)
-$('replay-button').addEventListener('click', startCountdown)
