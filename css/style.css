@@ -1,0 +1,497 @@
+:root {
+  --night: #1b6fd1;
+  --night-soft: rgba(20, 70, 150, 0.88);
+  --gold: #ffffff;
+  --sky: #f06292;
+  --paper: #ffffff;
+  --muted: #dce9fb;
+
+  /* Imagen de fondo (degradado). La ruta es relativa a esta carpeta css/ */
+  --fondo: url('../assets/fondo.png');
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--night);   /* respaldo mientras carga la imagen */
+  background-image: var(--fondo);
+  background-size: cover;           /* llena toda la pantalla sin deformarse */
+  background-position: center;
+  background-repeat: no-repeat;
+  color: var(--paper);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+/* Cámara de fondo y escena 3D encima, ambas a pantalla completa */
+#camera-feed,
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#camera-feed {
+  object-fit: cover;
+  z-index: 0;
+  background: transparent;          /* deja ver el fondo mientras parte la cámara */
+}
+
+#scene {
+  z-index: 1;
+  display: block;
+}
+
+/* Flecha indicadora */
+#pointer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Termómetro: frío (celeste) -> tibio (amarillo) -> caliente (rojo) */
+#thermo {
+  --thermo-color: #38bdf8;
+  position: fixed;
+  top: calc(20px + env(safe-area-inset-top, 0px));
+  right: 18px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+#thermo.hidden {
+  display: none !important;
+}
+
+.thermo-tube {
+  position: relative;
+  width: 16px;
+  height: 84px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.thermo-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 25%;
+  border-radius: 999px;
+  background: var(--thermo-color);
+  transition: height 0.6s ease, background-color 0.6s ease;
+}
+
+.thermo-bulb {
+  width: 26px;
+  height: 26px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: var(--thermo-color);
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  transition: background-color 0.6s ease;
+}
+
+.thermo-label {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: color 0.4s ease;
+}
+
+/* Niveles */
+#thermo.level-frio { --thermo-color: #38bdf8; }
+#thermo.level-tibio { --thermo-color: #ffd93d; }
+#thermo.level-caliente { --thermo-color: #ff4d4d; }
+
+#thermo.level-frio .thermo-fill { height: 25%; }
+#thermo.level-tibio .thermo-fill { height: 62%; }
+#thermo.level-caliente .thermo-fill { height: 100%; }
+
+/* Animación de "latido" cuando hay un Salcotín visible en pantalla */
+#thermo.level-caliente .thermo-bulb {
+  animation: thermo-pulse 0.85s ease-in-out infinite;
+}
+
+@keyframes thermo-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.55);
+  }
+  50% {
+    transform: scale(1.18);
+    box-shadow: 0 0 0 9px rgba(255, 77, 77, 0);
+  }
+}
+
+/* Texto de ayuda inferior: reemplaza al cartel de inicio (intro.png) */
+#hint-text {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  padding: 0 24px;
+  pointer-events: none;
+}
+
+#hint-text.hidden {
+  display: none !important;
+}
+
+#hint-text-inner {
+  display: inline-block;
+  max-width: 92vw;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+#hint-text-inner.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pill {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 28px;
+  background: var(--gold);
+  color: #1b6fd1;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pill:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 3px;
+}
+
+/* Pantallas de inicio, carga y error */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
+  background-color: var(--night);   /* respaldo mientras carga la imagen */
+  background-image: var(--fondo);
+  background-size: cover;           /* llena toda la pantalla sin deformarse */
+  background-position: center;
+  background-repeat: no-repeat;
+  text-align: center;
+}
+
+#loading-screen {
+  background: var(--night-soft);
+  font-size: 17px;
+}
+
+.panel {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.panel h1 {
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.panel p {
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.panel .small {
+  font-size: 13px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.intro-art {
+  width: min(92vw, 420px);
+  height: auto;
+  display: block;
+}
+
+/* ============================================================
+   CAZA RELÁMPAGO
+   ============================================================ */
+
+/* Pantalla de inicio */
+.game-title {
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-shadow: 0 0 18px rgba(251, 3, 251, 0.75), 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.panel .rules {
+  font-size: 15px;
+  line-height: 1.45;
+  color: #fff;
+  max-width: 330px;
+}
+
+.panel .rules strong {
+  color: #ffd84d;
+}
+
+/* Marcador superior */
+#hud {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  left: 14px;
+  right: 14px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  row-gap: 8px;
+  pointer-events: none;
+}
+
+.hud-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 92px;
+  padding: 6px 14px 8px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+
+.hud-label {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.hud-value {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+#score-pill.bump .hud-value {
+  animation: bump 0.25s ease-out;
+}
+
+@keyframes bump {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.35); color: #ffd84d; }
+  100% { transform: scale(1); }
+}
+
+#time-pill.hurry {
+  background: rgba(220, 20, 60, 0.75);
+  animation: hurry 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes hurry {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+
+#time-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+#time-bar-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fb03fb, #3fa9ff);
+  transform-origin: left center;
+}
+
+/* Flechas hacia Salcotines fuera de pantalla */
+#arrows,
+#floaters {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.edge-arrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 46px;
+  height: 46px;
+  will-change: transform;
+}
+
+.edge-arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+
+/* "+1" que flota al atrapar */
+.floater {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 30px;
+  font-weight: 900;
+  color: #ffd84d;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4), 0 0 14px rgba(251, 3, 251, 0.8);
+  white-space: nowrap;
+  animation: float-up 0.9s ease-out forwards;
+}
+
+@keyframes float-up {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  15% { opacity: 1; transform: translate(-50%, -70%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -190%) scale(1); }
+}
+
+/* Texto grande al centro */
+#center-text {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 38%;
+  z-index: 7;
+  text-align: center;
+  font-size: 64px;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 0 30px rgba(251, 3, 251, 0.9);
+  pointer-events: none;
+}
+
+#center-text.small {
+  font-size: 38px;
+}
+
+#center-text.pop {
+  animation: pop 0.7s ease-out;
+}
+
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  25% { opacity: 1; transform: scale(1.15); }
+  60% { transform: scale(1); }
+  100% { opacity: 0.9; transform: scale(1); }
+}
+
+/* Resultado */
+.result-kicker {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.result-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+}
+
+#result-score {
+  font-size: 96px;
+  font-weight: 900;
+  line-height: 0.95;
+  text-shadow: 0 0 26px rgba(251, 3, 251, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+
+.result-unit {
+  font-size: 16px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.panel .result-record {
+  font-size: 14px;
+  color: #ffd84d;
+  font-weight: 700;
+  min-height: 1em;
+}
+
+.result-prize {
+  width: min(86vw, 380px);
+  height: auto;
+  display: block;
+}
+
+.panel .result-message {
+  font-size: 16px;
+  line-height: 1.4;
+  color: #fff;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #time-pill.hurry,
+  #score-pill.bump .hud-value,
+  #center-text.pop,
+  .floater {
+    animation: none;
+  }
+}
