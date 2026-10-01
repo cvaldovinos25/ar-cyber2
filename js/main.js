@@ -44,7 +44,7 @@ const CONFIG = {
   // Récord compartido entre todos los jugadores (Google Sheets + Apps Script).
   // Pega aquí la URL de tu "Aplicación web" (termina en /exec). Si queda vacía
   // o la planilla no responde, el juego funciona igual, sin mostrar el récord.
-  RECORD_URL: '',
+  RECORD_URL: 'https://script.google.com/macros/s/AKfycbzzpm71QdnOGZ9dQs6hrLSvIZdhA0kY-liu1M-qBMYX9yXfmc477a40CDJWM11PLA/exec',
   RECORD_TIMEOUT_MS: 6000,
 }
 
