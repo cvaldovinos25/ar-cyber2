@@ -48,6 +48,43 @@ const CONFIG = {
   RECORD_TIMEOUT_MS: 6000,
 }
 
+// ---------- Código único de cada partida ----------
+// Se muestra en la pantalla de resultado y se guarda en la planilla junto al puntaje.
+// Usa letras y números fáciles de leer (sin 0, O, 1, I ni L, que se confunden).
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+const CODE_LENGTH = 6               // 6 caracteres: más de 880 millones de combinaciones
+
+function generatePlayCode() {
+  const values = new Uint32Array(CODE_LENGTH)
+  if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(values)
+  else for (let i = 0; i < CODE_LENGTH; i++) values[i] = Math.floor(Math.random() * 4294967296)
+  let code = ''
+  for (let i = 0; i < CODE_LENGTH; i++) code += CODE_CHARS[values[i] % CODE_CHARS.length]
+  return code.slice(0, 3) + '-' + code.slice(3)       // por ejemplo: K7P-Q4M
+}
+
+// cuadro donde se muestra el código (se agrega solo a la pantalla de resultado)
+function ensureCodeBox() {
+  let box = document.getElementById('result-code')
+  if (box) return box
+  const style = document.createElement('style')
+  style.textContent = `
+    .result-code { display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 8px 18px 10px; border-radius: 14px; background: rgba(255,255,255,0.12);
+      border: 1px dashed rgba(255,255,255,0.55); color: #fff; }
+    .result-code-label { font-size: 12px; font-weight: 700; opacity: 0.85; }
+    .result-code-value { font-size: 26px; font-weight: 900; letter-spacing: 0.12em;
+      font-variant-numeric: tabular-nums; user-select: text; -webkit-user-select: text; }`
+  document.head.appendChild(style)
+  box = document.createElement('div')
+  box.id = 'result-code'
+  box.className = 'result-code'
+  box.innerHTML = '<span class="result-code-label">' + TEXTS.codeLabel + '</span><span class="result-code-value"></span>'
+  const message = $('result-message')
+  message.parentNode.insertBefore(box, message.nextSibling)
+  return box
+}
+
 const ASSETS = {
   salcotin: 'assets/1.png',
   confetti: ['assets/amarillo.png', 'assets/celeste.png', 'assets/rosa.png'],
@@ -86,6 +123,7 @@ const TEXTS = {
   record: (n) => `Récord de jugadores: ${n}`,
   youHaveRecord: '¡Tienes el récord! Por ahora...',
   tiedRecord: (n) => `¡Igualaste el récord de jugadores! (${n})`,
+  codeLabel: 'Código de tu partida',
 }
 
 
@@ -593,12 +631,13 @@ function endGame() {
 // Envía el puntaje a la planilla y recibe el récord de todos los jugadores.
 // Respuesta esperada: { ok: true, record: 25, previousRecord: 22 }
 // (previousRecord es null si nadie había jugado antes).
-async function submitScore(points) {
+async function submitScore(points, code) {
   if (!CONFIG.RECORD_URL) return null
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), CONFIG.RECORD_TIMEOUT_MS)
   try {
-    const url = CONFIG.RECORD_URL + '?action=submit&score=' + encodeURIComponent(points)
+    const url = CONFIG.RECORD_URL + '?action=submit&score=' + encodeURIComponent(points) +
+      '&code=' + encodeURIComponent(code)
     const res = await fetch(url, { signal: controller.signal })
     const data = await res.json()
     return data && data.ok ? data : null
@@ -610,11 +649,11 @@ async function submitScore(points) {
   }
 }
 
-async function showRecord(points) {
+async function showRecord(points, code) {
   const el = $('result-record')
   if (!CONFIG.RECORD_URL) { el.textContent = ''; return }
   el.textContent = TEXTS.recordLoading
-  const data = await submitScore(points)
+  const data = await submitScore(points, code)
   if (!data) { el.textContent = ''; return }      // sin conexión: no se muestra
   const prev = data.previousRecord
   if (prev === null || prev === undefined || points > prev) el.textContent = TEXTS.youHaveRecord
@@ -627,7 +666,9 @@ function showResults() {
 
   $('result-score').textContent = score
   $('result-kicker').textContent = prize ? (prize.kicker || TEXTS.kickerWin) : TEXTS.kickerLose
-  showRecord(score)
+  const code = generatePlayCode()
+  ensureCodeBox().querySelector('.result-code-value').textContent = code
+  showRecord(score, code)
 
   const img = $('result-prize')
   if (prize) {
