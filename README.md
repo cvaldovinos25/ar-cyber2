@@ -1,4 +1,4 @@
-# ¡Caza relámpago!
+# SalcoHunt!
 
 Juego de realidad aumentada para el celular. Los jugadores tendrán 30 segundos era atrapar a la mayor cantidad de Salcotines; los cuales aparecen a su alrededor y se esconden rápidamente. Hay que girar el celular y tocar todos los que se puedan encontrar alrededor.
 
