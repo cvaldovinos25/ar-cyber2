@@ -1,6 +1,6 @@
-# Caza relámpago de Salcotín
+# ¡Caza relámpago!
 
-Juego de realidad aumentada para el celular. La persona tiene 30 segundos: los Salcotines aparecen a su alrededor, sobre la imagen de la cámara, y se esconden rápido. Hay que girar el celular y tocar todos los que se pueda. Si llega a la meta, gana un premio.
+Juego de realidad aumentada para el celular. Los jugadores tendrán 30 segundos era atrapar a la mayor cantidad de Salcotines; los cuales aparecen a su alrededor y se esconden rápidamente. Hay que girar el celular y tocar todos los que se puedan encontrar alrededor.
 
 Funciona directo en el navegador, sin instalar ninguna app, y no depende de motores ni servicios externos: todo el código, las imágenes y la librería 3D viven en este repositorio y se publican con GitHub Pages.
 
