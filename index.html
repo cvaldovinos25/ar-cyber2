@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#fb03fb">
+  <title>Caza relámpago de Salcotín</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- precarga de imágenes para que el juego parta más rápido -->
+  <link rel="preload" as="image" href="assets/intro.png">
+  <link rel="preload" as="image" href="assets/1.png">
+  <link rel="preload" as="image" href="assets/2.png">
+</head>
+<body>
+  <!-- Imagen de la cámara trasera (fondo) -->
+  <video id="camera-feed" playsinline muted autoplay></video>
+
+  <!-- Escena 3D transparente encima de la cámara -->
+  <canvas id="scene"></canvas>
+
+  <!-- Marcador del juego: puntaje y tiempo -->
+  <div id="hud" class="hidden" aria-live="polite">
+    <div class="hud-pill" id="score-pill">
+      <span class="hud-label">Atrapados</span>
+      <span class="hud-value" id="score">0</span>
+    </div>
+    <div class="hud-pill" id="time-pill">
+      <span class="hud-label">Tiempo</span>
+      <span class="hud-value" id="time">30</span>
+    </div>
+    <div id="time-bar"><div id="time-bar-fill"></div></div>
+  </div>
+
+  <!-- Flechas que apuntan a los Salcotines que están fuera de la pantalla -->
+  <div id="arrows" aria-hidden="true"></div>
+
+  <!-- Textos "+1" que flotan al atrapar -->
+  <div id="floaters" aria-hidden="true"></div>
+
+  <!-- Texto grande al centro: cuenta regresiva, combos, "¡Tiempo!" -->
+  <div id="center-text" class="hidden" aria-live="assertive"></div>
+
+  <!-- Pantalla de inicio -->
+  <section id="start-screen" class="overlay">
+    <div class="panel">
+      <img class="intro-art" src="assets/intro.png" alt="¡Busca a Salcotín!">
+      <h1 class="game-title">Caza relámpago</h1>
+      <p class="rules">Tienes <strong id="rules-seconds">30</strong> segundos. Los Salcotines aparecen a tu alrededor y se esconden rápido: gira el celular y atrapa todos los que puedas. ¡Con <strong id="rules-goal">15</strong> o más ganas un premio!</p>
+      <button id="start-button" class="pill" type="button">Comenzar</button>
+      <p class="small">Te vamos a pedir permiso para usar la cámara y el movimiento del teléfono.</p>
+    </div>
+  </section>
+
+  <section id="loading-screen" class="overlay hidden">
+    <p>Activando cámara...</p>
+  </section>
+
+  <!-- Resultado final -->
+  <section id="results-screen" class="overlay hidden">
+    <div class="panel">
+      <p class="result-kicker" id="result-kicker">¡Se acabó el tiempo!</p>
+      <div class="result-score"><span id="result-score">0</span><span class="result-unit">Salcotines</span></div>
+      <p class="result-record" id="result-record"></p>
+      <img id="result-prize" class="result-prize hidden" alt="Tu premio">
+      <p class="result-message" id="result-message"></p>
+      <button id="replay-button" class="pill" type="button">Jugar otra vez</button>
+    </div>
+  </section>
+
+  <section id="error-screen" class="overlay hidden">
+    <div class="panel">
+      <h1>No se pudo iniciar</h1>
+      <p id="error-message"></p>
+      <button class="pill" type="button" onclick="location.reload()">Recargar página</button>
+    </div>
+  </section>
+
+  <!-- three.js alojado en este mismo repositorio (sin CDN) -->
+  <script src="lib/three.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
