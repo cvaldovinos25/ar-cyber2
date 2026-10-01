@@ -14,7 +14,8 @@
 // ---------- Ajustes del juego ----------
 const CONFIG = {
   GAME_SECONDS: 30,          // duración de la partida
-  GOAL: 15,                  // puntaje para ganar el premio
+  GOAL: 15,                  // puntaje para ganar el premio estándar (15 a 29)
+  BIG_GOAL: 30,              // puntaje para ganar el premio mayor (30 o más)
 
   // Aparición de Salcotines (los valores van del inicio al final de la partida:
   // el juego se pone más rápido a medida que pasa el tiempo)
@@ -39,6 +40,12 @@ const CONFIG = {
   CAMERA_FOV: 60,
   SMOOTHING: 0.35,           // 0 a 1: más bajo = movimiento más suave
   HURRY_SECONDS: 5,          // el reloj se pone rojo en los últimos segundos
+
+  // Récord compartido entre todos los jugadores (Google Sheets + Apps Script).
+  // Pega aquí la URL de tu "Aplicación web" (termina en /exec). Si queda vacía
+  // o la planilla no responde, el juego funciona igual, sin mostrar el récord.
+  RECORD_URL: '',
+  RECORD_TIMEOUT_MS: 6000,
 }
 
 const ASSETS = {
@@ -47,9 +54,21 @@ const ASSETS = {
 }
 
 // Premios según el puntaje (del más alto al más bajo). Puedes agregar más niveles,
-// por ejemplo { minScore: 25, image: 'assets/3.png', message: '...' } antes del actual.
+// Se revisan en orden: gana el primero cuyo minScore alcance el puntaje.
+// Con menos de CONFIG.GOAL no se gana nada.
 const PRIZES = [
-  { minScore: CONFIG.GOAL, image: 'assets/2.png', message: '¡Toma un pantallazo y canjea tu premio!' },
+  {
+    minScore: CONFIG.BIG_GOAL,                // 30 o más
+    kicker: '¡PREMIO MAYOR!',
+    image: 'assets/premio-mayor.png',
+    message: '¡Increíble! Toma un pantallazo y canjea tu premio mayor.',
+  },
+  {
+    minScore: CONFIG.GOAL,                    // 15 a 29
+    kicker: '¡Lo lograste!',
+    image: 'assets/2.png',
+    message: '¡Toma un pantallazo y canjea tu premio!',
+  },
 ]
 
 const TEXTS = {
@@ -58,12 +77,17 @@ const TEXTS = {
   combo: (n) => `¡Combo x${n}!`,
   kickerWin: '¡Lo lograste!',
   kickerLose: '¡Se acabó el tiempo!',
-  noPrize: (missing) => `¡Casi! Te faltaron ${missing} para ganar el premio.`,
-  record: (n) => `Tu récord: ${n}`,
-  newRecord: '¡Nuevo récord!',
+  noPrize: (missing) => missing === 1
+    ? '¡Casi! Te faltó 1 para ganar un premio.'
+    : `¡Casi! Te faltaron ${missing} para ganar un premio.`,
+  toBigPrize: (missing) => `Con ${missing} más habrías ganado el premio mayor.`,
+  rulesBig: (n) => ` ¡Y con <strong>${n}</strong> o más, el <strong>premio mayor</strong>!`,
+  recordLoading: 'Buscando el récord de jugadores...',
+  record: (n) => `Récord de jugadores: ${n}`,
+  youHaveRecord: '¡Tienes el récord! Por ahora...',
+  tiedRecord: (n) => `¡Igualaste el récord de jugadores! (${n})`,
 }
 
-const RECORD_KEY = 'salcotin-caza-record'
 
 const randRange = (min, max) => Math.random() * (max - min) + min
 const toRad = (deg) => (deg * Math.PI) / 180
@@ -566,29 +590,56 @@ function endGame() {
   setTimeout(showResults, 1300)
 }
 
-function readRecord() {
-  try { return parseInt(localStorage.getItem(RECORD_KEY) || '0', 10) || 0 } catch (e) { return 0 }
+// Envía el puntaje a la planilla y recibe el récord de todos los jugadores.
+// Respuesta esperada: { ok: true, record: 25, previousRecord: 22 }
+// (previousRecord es null si nadie había jugado antes).
+async function submitScore(points) {
+  if (!CONFIG.RECORD_URL) return null
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), CONFIG.RECORD_TIMEOUT_MS)
+  try {
+    const url = CONFIG.RECORD_URL + '?action=submit&score=' + encodeURIComponent(points)
+    const res = await fetch(url, { signal: controller.signal })
+    const data = await res.json()
+    return data && data.ok ? data : null
+  } catch (e) {
+    console.warn('No se pudo guardar el puntaje en la planilla', e)
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
-function saveRecord(n) {
-  try { localStorage.setItem(RECORD_KEY, String(n)) } catch (e) { /* sin almacenamiento: no pasa nada */ }
+async function showRecord(points) {
+  const el = $('result-record')
+  if (!CONFIG.RECORD_URL) { el.textContent = ''; return }
+  el.textContent = TEXTS.recordLoading
+  const data = await submitScore(points)
+  if (!data) { el.textContent = ''; return }      // sin conexión: no se muestra
+  const prev = data.previousRecord
+  if (prev === null || prev === undefined || points > prev) el.textContent = TEXTS.youHaveRecord
+  else if (points === prev && points > 0) el.textContent = TEXTS.tiedRecord(prev)
+  else el.textContent = TEXTS.record(data.record)
 }
 
 function showResults() {
   const prize = PRIZES.find((p) => score >= p.minScore)
-  const previous = readRecord()
-  const isRecord = score > previous
-  if (isRecord) saveRecord(score)
 
   $('result-score').textContent = score
-  $('result-kicker').textContent = prize ? TEXTS.kickerWin : TEXTS.kickerLose
-  $('result-record').textContent = isRecord && previous > 0 ? TEXTS.newRecord : TEXTS.record(Math.max(score, previous))
+  $('result-kicker').textContent = prize ? (prize.kicker || TEXTS.kickerWin) : TEXTS.kickerLose
+  showRecord(score)
 
   const img = $('result-prize')
   if (prize) {
+    // si la imagen no existe o no carga, se oculta y queda solo el texto
+    img.onerror = () => img.classList.add('hidden')
     img.src = prize.image
     img.classList.remove('hidden')
-    $('result-message').textContent = prize.message
+    let message = prize.message
+    // a quien ganó un premio menor, le decimos cuánto le faltó para el mayor
+    const better = PRIZES.filter((p) => p.minScore > score)
+    if (better.length) message += ' ' + TEXTS.toBigPrize(Math.min(...better.map((p) => p.minScore)) - score)
+    $('result-message').textContent = message
   } else {
     img.classList.add('hidden')
     const lowest = Math.min(...PRIZES.map((p) => p.minScore))
@@ -674,4 +725,6 @@ async function launchExperience() {
 
 $('rules-seconds').textContent = CONFIG.GAME_SECONDS
 $('rules-goal').textContent = Math.min(...PRIZES.map((p) => p.minScore))
+// agrega a las reglas de inicio la meta del premio mayor
+document.querySelector('.rules').insertAdjacentHTML('beforeend', TEXTS.rulesBig(CONFIG.BIG_GOAL))
 $('start-button').addEventListener('click', launchExperience)
