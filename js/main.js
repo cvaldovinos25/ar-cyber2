@@ -60,7 +60,7 @@ const PRIZES = [
   {
     minScore: CONFIG.BIG_GOAL,                // 30 o más
     kicker: '¡PREMIO MAYOR!',
-    image: 'assets/premio-mayor.png',
+    image: 'assets/2.png',
     message: '¡Increíble! Toma un pantallazo y canjea tu premio mayor.',
   },
   {
