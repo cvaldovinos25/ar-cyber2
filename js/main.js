@@ -1,5 +1,5 @@
 // ============================================================
-// CAZA RELÁMPAGO DE SALCOTÍN (sin motores externos)
+// SalcoHunt! (sin motores externos)
 //
 // La persona tiene 30 segundos. Los Salcotines (1.png) aparecen a su
 // alrededor solo un momento y se esconden: hay que girar el celular y
